@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<style>
+#your_location{
+  !background-color: blue;
+  border-radius: {{user_radius}};
+  width: {{user_radius}};
+  height: {{user_radius}};
+  position:absolute;
+  animation: pulse 2s infinite;
+}
+#detection_radius{
+  border-radius: {{radar_radius}};
+  border-width:5px !important;
+  width:  {{radar_radius}};
+  height: {{radar_radius}};
+  position:absolute;
+  background-color:blue;
+  opacity: 0.5;
+}
+
+.pulsate {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(0.5);
+		!box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+		!border-radius: 50%;
+	}
+
+	70% {
+		transform: scale(1);
+		!box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+		!border-radius: 50%;
+	}
+
+	100% {
+		transform: scale(0.5);
+		!box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+		!border-radius: 50%;
+	}
+}
+#campus_map{
+  width:900px;
+  height:900px;
+}
+</style>
+<body>
+
+<img id="campus_map" src="{{map_file}}"/>
+
+<div id="detection_radius" class="border border-primary"></div>
+<div id="your_location" class="bg-primary"></div>
+<div id="lat_long"></div>
+<button id="move_up">Up</button>
+<button id="move_down">Down</button>
+<button id="move_right">right</button>
+<button id="move_left">Left</button>
+<button id="show_locations">show all locations</button>
+
+<p id="demo"></p>
+
+<script>
+var pilot_object = {
+  down: 0,
+  right: 0
+}
+
+$("#move_up").on("click",function(){
+  pilot_object.down -= 50;
+});
+$("#move_down").on("click",function(){
+  pilot_object.down += 50;
+});
+$("#move_left").on("click",function(){
+  pilot_object.right -= 50;
+});
+$("#move_right").on("click",function(){
+  pilot_object.right += 50;
+});
+
+
+
+function center_coords(x_pos,y_pos,element){
+  var element_width  = element.css("width").replace("px","");
+  var element_height = element.css("height").replace("px","");
+  element.css("left", x_pos - element_width/2);
+  element.css("top", y_pos - element_height/2);
+}
+
+//https://stackoverflow.com/a/23339967
+function collidesWith (element1, element2) {
+  var Element1 = {};
+  var Element2 = {};
+
+  Element1.top = $(element1).offset().top;
+  Element1.left = $(element1).offset().left;
+  Element1.right = Number($(element1).offset().left) + Number($(element1).width());
+  Element1.bottom = Number($(element1).offset().top) + Number($(element1).height());
+
+  Element2.top = $(element2).offset().top;
+  Element2.left = $(element2).offset().left;
+  Element2.right = Number($(element2).offset().left) + Number($(element2).width());
+  Element2.bottom = Number($(element2).offset().top) + Number($(element2).height());
+
+  if (Element1.right > Element2.left && Element1.left < Element2.right && Element1.top < Element2.bottom && Element1.bottom > Element2.top) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+
+//https://www.openstreetmap.org/ is useful for getting coordinates and images
+var x_range = [{{longitude_min}},{{longitude_max}}];
+var y_range = [{{latitude_min}},{{latitude_max}}];
+var x_width = x_range[1] - x_range[0];
+var y_width = y_range[1] - y_range[0];
+
+var stimuli_locations = parent.parent.Collector.PapaParsed(Phase.get_stim("{{location_sheet}}"));
+console.log("stimuli_locations");
+console.log(stimuli_locations);
+
+
+function x_y_positions(longitude, latitude){
+  var x_pos = parseFloat($("#campus_map").css("width").replace("px","")) * (longitude - x_range[0])/x_width
+  var y_pos = parseFloat($("#campus_map").css("height").replace("px","")) * (1-(latitude - y_range[0])/y_width)
+  return [x_pos,y_pos];
+}
+
+
+stimuli_locations.forEach(function(this_location, index){
+  location_element = $("<button>");
+  location_element.html("?")
+    .addClass("btn")
+    .addClass("btn-secondary")
+    .addClass("location")
+    .prop("id",this_location.id)
+    .prop("disabled",true)
+    .css("position", "absolute");
+    
+  if(this_location.hidden == "yes"){
+    location_element.css("display", "none");
+  }
+  if(this_location.class !== ""){
+    location_element.addClass(this_location.class);
+  }
+  
+  $(document.body).append(location_element);
+  [x_pos,y_pos] = x_y_positions(this_location.long, this_location.lat);
+  center_coords(x_pos, y_pos, location_element);
+});
+
+$("#show_locations").on("click", function(){
+  $(".location").show();
+  $(".location").removeClass("btn-secondary", false);
+  $(".location").addClass("btn-primary", false);
+  $(".location").prop("disabled", false);
+});
+
+$(".location").on("click", function(){
+  var this_row = stimuli_locations.filter(row => row.id == $(this)[0].id)[0];
+  bootbox.alert(this_row.main_text);
+})
+
+function detect_location(x_pos, y_pos){
+  stimuli_locations.forEach(function(this_location, index){
+    if(collidesWith($("#detection_radius")[0], $("#" + this_location.id)[0])){
+      $("#" + this_location.id).html(this_location["btn_text"]);
+      $("#" + this_location.id).removeClass("btn-secondary", false);
+      $("#" + this_location.id).addClass("btn-primary", false);
+      $("#" + this_location.id).prop("disabled", false);
+    }
+  });
+}
+
+function getLocation() {
+  console.log(navigator);
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position){
+      [x_pos,y_pos] = x_y_positions(position.coords.longitude, position.coords.latitude);
+      x_pos += pilot_object.right;
+      y_pos += pilot_object.down;
+  
+      
+      center_coords(x_pos,y_pos, $("#your_location"));
+      center_coords(x_pos,y_pos, $("#detection_radius"));
+      
+      detect_location(x_pos, y_pos);
+      $("#lat_long").html(position.coords.latitude + "-" + position.coords.longitude);
+      
+      
+    }, function(error){
+      //[x_pos,y_pos] = x_y_positions(position.coords.longitude, position.coords.latitude);
+      
+      var x_pos = parseFloat($("#campus_map").css("width").replace("px","")) * .5 + pilot_object.right;
+      var y_pos = parseFloat($("#campus_map").css("height").replace("px","")) * .5 + pilot_object.down;
+      
+      center_coords(x_pos,y_pos, $("#your_location"));
+      center_coords(x_pos,y_pos, $("#detection_radius"));
+      
+      detect_location(x_pos, y_pos);
+      $("#lat_long").html(x_pos + "-" + y_pos);
+      
+      console.log("error:" + error.message);
+    });
+  } else { 
+    x.innerHTML = "Geolocation is not supported by this browser.";
+  }
+}
+
+getLocation();
+location_interval = setInterval(function(){
+  getLocation();
+},5000);
+</script>
+
+</body>
+</html>

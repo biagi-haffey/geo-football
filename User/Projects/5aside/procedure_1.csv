@@ -1,0 +1,3 @@
+item,phasetype,max_time,text,shuffle_1,map_file,location_sheet,longitude_min,longitude_max,latitude_min,latitude_max,radar_radius,user_radius,
+2,geo_location,user,This is the start of a new experiment.,off,../User/Projects/5aside/big_pitch.jpg,locations.csv,-0.95047,-0.95192,51.44249,51.44301,10px,2px,
+2,geo_location,user,This is the start of a new experiment.,off,../User/Projects/5aside/big_pitch.jpg,locations.csv,-0.95456,-0.95462,51.45056,51.45057,10px,2px,
