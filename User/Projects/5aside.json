@@ -7,7 +7,7 @@
     "stimuli_1.csv": "cue,answer,\r\nA,Apple,\r\nB,Banana,\r\n,,",
     "locations.csv": "long,lat,btn_text,main_text,hidden,class,id,status,question,correct_answer,incorrect_answers,\r\n,,,,,,,,,,,"
   },
-  "location": "biagi-haffey/geo-game/5aside",
+  "location": "biagi-haffey/geo-football/5aside",
   "public_key": "MXyPLK2HTTpr/7TNlrfszdvO8cK1XBK0B9PW7TsAGWQ=",
   "surveys": {},
   "trialtypes": {},
